@@ -13,6 +13,11 @@ test : build
 test2: build
 	./test.sh ./$(FILE).out ./tests/public_tests
 
+test3: build
+	./test.sh ./$(FILE).out ./tests/testes-turno2
+
+
+
 zip : build
 	zip proj2.zip *.c *.h
 

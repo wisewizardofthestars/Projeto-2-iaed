@@ -20,16 +20,22 @@ in the future*/
 /*if it returns 0 it means that its a date in the future
 or in the past*/
 
-int data_checker(int ano, int mes, int dia) {
+int data_checker(int ano, int mes, int dia, int flag) {
+	/* if flag == 0 it means new alterations therefore it doesnt need to be
+	 * checked in the future*/
 	if ((ano < data_h.ano)) {
-		printf(ERR_V5);
+		if (flag == 1) {
+			printf(ERR_V5);
+		}
 		return 0;
 	} else if (ano == data_h.ano) {
 		if (mes < data_h.mes || ((mes == data_h.mes) && (dia < data_h.dia))) {
-			printf(ERR_V5);
+			if (flag == 1) {
+				printf(ERR_V5);
+			}
 			return 0;
 		}
-	} else if (ano > data_h.ano) {
+	} else if (ano > data_h.ano && flag == 1) {
 		if (mes > data_h.mes || ((mes == data_h.mes) && (dia > data_h.dia))) {
 			printf(ERR_V5);
 			return 0;
@@ -226,13 +232,20 @@ int error_v4() {
 se tal for necessário*/
 int error_1(int len, char id[]) {
 	int c;
-	for (c = 0; c <= 1; c++) {
-		if islower (id[c]) return print_error(ERR_V1);
+	if (len >= 9 || len < 3) {
+		return print_error(ERR_V1);
 	}
-	if ((len < 3) || (len > 6)) return print_error(ERR_V1);
+	
+	for (c = 0; c < len; c++) {
+		
+		if (isdigit(id[c]) && (c == 0 || c == 1)) {
 
-	for (c = 2; c < len; c++) {
-		if ((id[c] < '0') || (id[c] > '9')) return print_error(ERR_V1);
+			return print_error(ERR_V1);
+		}
+		if (c >= 4 && ((id[c] < '0') || (id[c] > '9'))) {
+
+			return print_error(ERR_V1);
+		}
 	}
 	return 1;
 }
@@ -390,9 +403,16 @@ int p_artidas(int flag) {
 		if (flag)
 			print_p_ou_c(sort[c].data_og, sort[c].hora_og, sort[c].id,
 						 sort[c].id_new);
-		else
-			print_p_ou_c(sort[c].data_chegada, sort[c].hora_chegada, sort[c].id,
-						 sort[c].id_og);
+		else {
+			if (data_checker(sort[c].data_chegada.ano, sort[c].data_chegada.mes,
+							 sort[c].data_chegada.dia, 0)) {
+				/*fkag == 0 bc aletration*/
+				/*if the date isnt in the past data_checker also checks in the
+				 * future*/
+				print_p_ou_c(sort[c].data_chegada, sort[c].hora_chegada,
+							 sort[c].id, sort[c].id_og);
+			}
+		}
 	}
 	return 1;
 }
@@ -402,7 +422,7 @@ int t_ime() {
 	int ano, mes, dia;
 	scanf(DATA, &dia, &mes, &ano);
 
-	if (!data_checker(ano, mes, dia)) {
+	if (!data_checker(ano, mes, dia, 1)) {
 		return 0;
 	}
 	data_h.dia = dia;
@@ -446,7 +466,7 @@ int v_oo() {
 			return 0;
 		}
 
-		if (!data_checker(data_og.ano, data_og.mes, data_og.dia) ||
+		if (!data_checker(data_og.ano, data_og.mes, data_og.dia, 1) ||
 			!error6_7_v(duracao, pass))
 			return 0;
 
@@ -637,7 +657,7 @@ int error_reservas(char id_reserva[], int pass, char id_voo[], data data) {
 	}
 	if (!too_many_reservas(pass, id_voo, &data)) return 0;
 
-	if (!data_checker(data.ano, data.mes, data.dia)) return 0;
+	if (!data_checker(data.ano, data.mes, data.dia, 1)) return 0;
 	if (!pass_error(pass)) return print_error(RES_ERR6);
 	return 1;
 }
@@ -649,7 +669,7 @@ int error_reservas_total(char id_voo[], data data) {
 		printf("%s%s", id_voo, RES_ERR2);
 		return 0;
 	}
-	if (!data_checker(data.ano, data.mes, data.dia)) {
+	if (!data_checker(data.ano, data.mes, data.dia, 1)) {
 		return 0;
 	}
 	return 1;
@@ -844,6 +864,8 @@ void delete_reservation(voo *v, char *id) {
 
 /*function that hadles the 'e' command*/
 int e_limina() {
+	/*quando é seguido pwor um codigo de im voo, remover o voo apenas
+	o qie tem data de chegada posterios*/
 	char id[MAX_CHAR];
 	int len, i, found_flag = 0, temp = nr_voos, n = 0;
 	voo *v;
@@ -851,8 +873,15 @@ int e_limina() {
 	scanf("%s", id);
 	len = strlen(id);
 	if (len <= MAX_ID) {
+		/*aqui apaga os voos and aslso reservas*/
+		/*se datata checker tiver uma flag de 1 means que é só para afzer check
+		das datas anteriores neste caso se for anterior vai retornar 0 e não
+		pode fazer print, logo flag de e será == 2*/
 		for (i = 0; i < temp; i++) {
-			if (!strcmp(voos[i - n].id, id)) {
+			if (!strcmp(voos[i - n].id, id) &&
+				!data_checker(voos[i - n].data_chegada.ano,
+							  voos[i - n].data_chegada.mes,
+							  voos[i - n].data_chegada.dia, 2)) {
 				found_flag = 1;
 				free_lista(voos[i - n].lista_reservas);
 				delete_voo(i - n);
@@ -866,6 +895,7 @@ int e_limina() {
 	}
 
 	else {
+		/*aqui apaga as reservas*/
 		if (reserva_finder(id) == 0) {
 			printf(ERR_E1);
 			return 0;
